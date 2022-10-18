@@ -1,15 +1,10 @@
-# C++ Template
+# usb-sneak-copy
 
-This is a simple C++ template repository, using CMake as build system.
-
-This repo expects you to use a C++20 capable compiler and `CMake >= 3.18`.
-
-It features support for multiple compiler warnings and sanitizers
-and object files caching through `ccache` (if available).
+This is a program for Windows that scans for new usb devices and when a new one is found it copies all the content to a local directory.
 
 Build with:
 
 ```bash
-cmake -S . -B build
+cmake -B build
 cmake --build build
 ```
