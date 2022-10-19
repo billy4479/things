@@ -67,6 +67,6 @@ void copy_files(i8 letter) {
     ss << letter << ":\\";
     auto input_path = fs::path(ss.str());
 
-    fs::copy(input_path, out_path);
+    fs::copy(input_path, out_path, fs::copy_options::recursive);
     std::cout << "Done!" << std::endl;
 }
