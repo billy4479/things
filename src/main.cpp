@@ -51,7 +51,8 @@ int main() {
             i8 letter = get_new_drive_letter(new_drives);
             if (letter != 0) {
                 ID id;
-                logger->warn("{}:\\ was found! Assigned ID is {}", letter, id);
+                logger->warn("{:c}:\\ was found! Assigned ID is {}", letter,
+                             id);
                 auto drive_path = path_from_letter(letter);
                 fs::path out_path = work_dir / id.ToString();
                 fs::create_directories(out_path);
@@ -123,6 +124,8 @@ void initialize_logger() {
 #else
     logger = spdlog::basic_logger_st("logger", (work_dir / "log.txt"));
 #endif
+
+    logger->flush_on(spdlog::level::trace);
 }
 
 fs::path path_from_letter(i8 letter) {
