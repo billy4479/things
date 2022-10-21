@@ -118,7 +118,11 @@ bitset<32> get_devices() {
 }
 
 void initialize_logger() {
-    logger = spdlog::basic_logger_st("logger", work_dir / "log.txt");
+#ifdef PLATFORM_WINDOWS
+    logger = spdlog::basic_logger_st("logger", (work_dir / "log.txt").string());
+#else
+    logger = spdlog::basic_logger_st("logger", (work_dir / "log.txt"));
+#endif
 }
 
 fs::path path_from_letter(i8 letter) {
