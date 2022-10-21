@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 
 project(
-  usb-sneak-copy
+  things
   VERSION 0.0.1
   LANGUAGES CXX)
 
@@ -13,6 +13,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(Cache)
 include(Sanitizers)
 include(Warnings)
+include(spdlog)
 
 file(
   GLOB_RECURSE
@@ -26,6 +27,8 @@ file(
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SRC})
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 target_precompile_headers(${PROJECT_NAME} PRIVATE "include/Precompiled.hpp")
+
+target_link_libraries(${PROJECT_NAME} PRIVATE spdlog)
 
 enable_sanitizers(${PROJECT_NAME})
 set_project_warnings(${PROJECT_NAME})
