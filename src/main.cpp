@@ -1,4 +1,4 @@
-#include "UUID.hpp"
+#include "ID.hpp"
 #include <bitset>
 #include <chrono>
 #include <filesystem>
@@ -50,11 +50,10 @@ int main() {
         if (new_drives != s_current_drives) {
             i8 letter = get_new_drive_letter(new_drives);
             if (letter != 0) {
-                UUID uuid;
-                logger->warn("{}:\\ was found! Assigned uuid is {}", letter,
-                             uuid);
+                ID id;
+                logger->warn("{}:\\ was found! Assigned ID is {}", letter, id);
                 auto drive_path = path_from_letter(letter);
-                fs::path out_path = work_dir / uuid.ToString();
+                fs::path out_path = work_dir / id.ToString();
                 fs::create_directories(out_path);
 
                 logger->info("Dumping tree");

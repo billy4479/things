@@ -1,24 +1,24 @@
 
 #pragma once
 
-class UUID {
+class ID {
   public:
-    UUID();
-    UUID(u64);
+    ID();
+    ID(u64);
 
     operator u64() const;
 
     std::string ToString() const;
 
   private:
-    u64 m_UUID;
+    u64 m_ID;
 };
 
 namespace std {
 
 template <typename T> struct hash;
 
-template <> struct hash<UUID> {
-    size_t operator()(const UUID &uuid) const { return std::hash<u64>{}(uuid); }
+template <> struct hash<ID> {
+    size_t operator()(const ID &id) const { return std::hash<u64>{}(id); }
 };
 } // namespace std
