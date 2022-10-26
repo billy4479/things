@@ -36,7 +36,7 @@ int main() {
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(1s);
 
-        logger->info("Looking for devices...");
+        logger->trace("Looking for devices...");
 
         if (auto path = get_new_drive_path()) {
             auto drive_path = path.value();
