@@ -8,6 +8,8 @@
 #include <spdlog/spdlog.h>
 #include <thread>
 
+#define USE_STD_FS_COPY 0
+
 #ifdef PLATFORM_WINDOWS
     #include <Windows.h>
 #endif
@@ -17,6 +19,10 @@ namespace fs = std::filesystem;
 void copy_files(fs::path drive_path, fs::path out_path);
 void dump_tree(fs::path in_path, fs::path out_file);
 void initialize_logger();
+
+#if !USE_STD_FS_COPY
+void copy_dir(fs::path src, fs::path out);
+#endif
 
 const static fs::path work_dir = fs::temp_directory_path() / "sussy";
 Ref<spdlog::logger> logger;
@@ -72,9 +78,14 @@ void copy_files(fs::path drive_path, fs::path out_path) {
     logger->info("Copying to {}", out_path.generic_string());
 
     try {
+
+#if USE_STD_FS_COPY
         auto options =
             fs::copy_options::recursive | fs::copy_options::update_existing;
         fs::copy(drive_path, out_path, options);
+#else
+        copy_dir(drive_path, out_path);
+#endif
         logger->info("Done!");
     } catch (...) {
         logger->error("Copy was interrupted, trying to save progress");
@@ -91,5 +102,41 @@ void initialize_logger() {
     logger = spdlog::basic_logger_st("logger", (work_dir / "log.txt"));
 #endif
 
+    logger->set_level(spdlog::level::trace);
     logger->flush_on(spdlog::level::trace);
 }
+
+#if !USE_STD_FS_COPY
+void copy_dir(fs::path src, fs::path out) {
+
+    for (const fs::directory_entry &entry :
+         fs::recursive_directory_iterator(src)) {
+
+        auto out_path = out / entry.path().lexically_relative(src);
+
+        if (entry.is_directory()) {
+            logger->trace("Creating {} to {}", entry.path().generic_string(),
+                          out_path.generic_string());
+            try {
+                fs::create_directories(out_path);
+            } catch (...) {
+                logger->error("Failed to create directory {}",
+                              out_path.generic_string());
+            }
+        }
+
+        if (entry.is_regular_file()) {
+            logger->trace("Copying {} to {} (size: {})",
+                          entry.path().generic_string(),
+                          out_path.generic_string(), entry.file_size());
+
+            try {
+                fs::copy_file(entry.path(), out_path);
+            } catch (...) {
+                logger->error("Failed to copy {}",
+                              entry.path().generic_string());
+            }
+        }
+    }
+}
+#endif
