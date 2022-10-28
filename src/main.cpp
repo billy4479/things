@@ -66,6 +66,7 @@ void dump_tree(fs::path in_path, fs::path out_file) {
         if (entry.is_regular_file())
             dump << entry.path().generic_string() << std::endl;
     }
+    logger->info("Tree dump compleated");
 }
 
 void copy_files(fs::path drive_path, fs::path out_path) {
