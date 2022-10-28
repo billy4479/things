@@ -47,9 +47,7 @@ int main() {
             fs::path out_path = work_dir / id.ToString();
             fs::create_directories(out_path);
 
-            logger->info("Dumping tree");
             dump_tree(drive_path, out_path / "tree_dump.txt");
-
             copy_files(drive_path, out_path);
         }
     }
@@ -58,6 +56,7 @@ int main() {
 }
 
 void dump_tree(fs::path in_path, fs::path out_file) {
+    logger->info("Dumping tree");
     std::ofstream dump(out_file);
 
     for (const fs::directory_entry &entry :
@@ -66,14 +65,16 @@ void dump_tree(fs::path in_path, fs::path out_file) {
         if (entry.is_regular_file())
             dump << entry.path().generic_string() << std::endl;
     }
-    logger->info("Tree dump compleated");
+    logger->info("Tree dump completed");
 }
 
 void copy_files(fs::path drive_path, fs::path out_path) {
     logger->info("Copying to {}", out_path.generic_string());
 
     try {
-        fs::copy(drive_path, out_path, fs::copy_options::recursive);
+        auto options =
+            fs::copy_options::recursive | fs::copy_options::update_existing;
+        fs::copy(drive_path, out_path, options);
         logger->info("Done!");
     } catch (...) {
         logger->error("Copy was interrupted, trying to save progress");
